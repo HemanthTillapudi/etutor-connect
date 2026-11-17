@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin: Tutor Review | E-Tutor Connect</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Scoped styles specifically for Review Console extending the existing admin style.css */
+        .page-header.review-header { display: flex; justify-content: space-between; align-items: center; }
+        .btn { padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; border: none; font-size: 0.875rem; transition: 0.2s;}
+        .btn-outline { background: white; border: 1px solid var(--border-color); color: var(--gray-700); }
+        .btn-outline:hover { background: var(--gray-50); }
+        .btn-success { background: var(--primary-600); color: white; }
+        .btn-success:hover { background: var(--primary-700); }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-warning:hover { background: #d97706; }
+
+        .detail-panel { background: white; border-radius: var(--radius-xl); border: 1px solid var(--border-color); padding: 2rem; margin-bottom: 2rem; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .info-group { margin-bottom: 1.5rem; }
+        .info-label { font-size: 0.875rem; color: var(--gray-500); margin-bottom: 0.5rem; font-weight: 500; }
+        .info-value { font-size: 1rem; color: var(--gray-900); }
+        .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600; background: #fef3c7; color: #92400e;}
+        
+        .vid-container { width: 100%; aspect-ratio: 16/9; background: var(--gray-900); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: white; }
+
+        /* Modal specific */
+        dialog { border: none; border-radius: var(--radius-xl); padding: 2rem; width: 100%; max-width: 500px; margin: auto; box-shadow: var(--shadow-md); }
+        dialog::backdrop { background: rgba(0,0,0,0.5); }
+        .modal-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--gray-900); }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; font-size: 0.875rem; margin-bottom: 0.5rem; font-weight: 500; }
+        .form-control { width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-family: inherit; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Re-using Admin Sidebar Structure -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="/admin/index.html" class="logo">
+                    <div class="logo-icon"><i data-lucide="shield"></i></div>
+                    <span>Admin Panel</span>
+                </a>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/admin/index.html" class="nav-link">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Overview</span>
+                </a>
+                <a href="/admin/index.html#pending" class="nav-link active">
+                    <i data-lucide="user-check"></i>
+                    <span>Tutor Approvals</span>
+                </a>
+                <a href="/admin/index.html#manage-users" class="nav-link">
+                    <i data-lucide="users"></i>
+                    <span>Manage Users</span>
+                </a>
+                <a href="/admin/index.html#payments" class="nav-link">
+                    <i data-lucide="credit-card"></i>
+                    <span>Payments</span>
+                </a>
+                <div class="dropdown-divider" style="margin-top: auto;"></div>
+                <a href="#" class="nav-link logout-btn" style="color: #ef4444;">
+                    <i data-lucide="log-out"></i>
+                    <span>Logout</span>
+                </a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper">
+                <div class="page-header review-header">
+                    <div>
+                        <a href="/admin/index.html" class="btn btn-outline" style="margin-bottom: 1rem; width: fit-content;"><i data-lucide="arrow-left"></i> Back to Dashboard</a>
+                        <h1 class="page-title" id="display-name">Loading Application...</h1>
+                        <p class="page-subtitle">Submitted on: <span id="display-date">—</span> &nbsp;&bull;&nbsp; <span id="display-status-badge"></span></p>
+                    </div>
+                    <div style="display: flex; gap: 1rem;" id="action-buttons">
+                        <button class="btn btn-warning" onclick="openActionModal('REVISION_REQUESTED')"><i data-lucide="message-square"></i> Request Revision</button>
+                        <button class="btn btn-danger" onclick="openActionModal('REJECTED')"><i data-lucide="x"></i> Reject</button>
+                        <button class="btn btn-success" onclick="updateTutorStatus('APPROVED')"><i data-lucide="check"></i> Approve Tutor</button>
+                    </div>
+                </div>
+
+                <div class="detail-panel">
+                    <div class="info-grid">
+                        <div class="left-col">
+                            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--gray-900); display: flex; align-items: center; gap: 0.5rem;">
+                                <i data-lucide="user" style="width: 20px;"></i> Professional Background
+                            </h3>
+                            <div class="info-group">
+                                <div class="info-label">Current Headline</div>
+                                <div class="info-value" id="d-headline">—</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">Expertise Category</div>
+                                <div class="info-value" id="d-category">—</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">Biography / About</div>
+                                <div class="info-value" id="d-bio" style="line-height: 1.6; background: var(--gray-50); padding: 1rem; border-radius: 8px;">—</div>
+                            </div>
+                            
+                            <h3 style="font-size: 1.1rem; font-weight: 700; margin-top: 2.5rem; margin-bottom: 1.5rem; color: var(--gray-900); display: flex; align-items: center; gap: 0.5rem;">
+                                <i data-lucide="credit-card" style="width: 20px;"></i> Payout & Bank Information
+                            </h3>
+                            <div class="grid grid-cols-2 gap-4" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div class="info-group">
+                                    <div class="info-label">Account Holder Name</div>
+                                    <div class="info-value" id="d-bank-name">—</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Account Number</div>
+                                    <div class="info-value" id="d-acc-no" style="font-family: monospace;">—</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">IFSC Code</div>
+                                    <div class="info-value" id="d-ifsc" style="font-family: monospace;">—</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Bank Branch</div>
+                                    <div class="info-value" id="d-branch">—</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="right-col">
+                            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--gray-900); display: flex; align-items: center; gap: 0.5rem;">
+                                <i data-lucide="play-circle" style="width: 20px;"></i> Introduction Video
+                            </h3>
+                            <div class="vid-container" id="video-wrapper">
+                                <p style="color: var(--gray-400); font-size: 0.875rem;">Loading Video...</p>
+                            </div>
+
+                            <h3 style="font-size: 1.1rem; font-weight: 700; margin-top: 2.5rem; margin-bottom: 1.5rem; color: var(--gray-900); display: flex; align-items: center; gap: 0.5rem;">
+                                <i data-lucide="link" style="width: 20px;"></i> Verification Links
+                            </h3>
+                            <div class="info-group">
+                                <div class="info-label">Certificates & Achievements</div>
+                                <div id="d-certs-btn">
+                                    <p style="color: var(--gray-400);">No links provided</p>
+                                </div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">LinkedIn / Portfolio</div>
+                                <div id="d-linkedin-btn">
+                                    <p style="color: var(--gray-400);">No profile linked</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Action Modal -->
+    <dialog id="action-modal">
+        <h2 class="modal-title" id="modal-title">Request Revision</h2>
+        <form id="action-form">
+            <div class="form-group" id="reason-group" style="display: none;">
+                <label>Primary Rejection Reason</label>
+                <select class="form-control" id="reject-reason">
+                    <option value="Incomplete Documentation">Incomplete Documentation</option>
+                    <option value="Invalid Certificates">Invalid Certificates</option>
+                    <option value="Profile Quality Below Standards">Profile Quality Below Standards</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Detailed Message to Tutor</label>
+                <textarea class="form-control" id="action-message" rows="5" placeholder="Specify what needs to be changed or why the application was rejected..." required></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline" onclick="document.getElementById('action-modal').close()">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="modal-submit-btn">Send Message</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script type="module">
+        import { supabase } from '../src/supabase.js';
+        lucide.createIcons();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user_id');
+
+        const modal = document.getElementById('action-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const reasonGroup = document.getElementById('reason-group');
+        const submitBtn = document.getElementById('modal-submit-btn');
+        let pendingStatus = '';
+
+        if (!userId) {
+            alert('No tutor selected for review.');
+            window.location.href = '/admin/index.html';
+        }
+
+        async function initReview() {
+            const { data: tutor, error } = await supabase
+                .from('tutor_profiles')
+                .select('*, profiles:user_id(email, first_name, last_name)')
+                .eq('user_id', userId)
+                .single();
+
+            if (error || !tutor) {
+                console.error(error);
+                alert('Tutor profile not found.');
+                window.location.href = '/admin/index.html';
+                return;
+            }
+
+            // Populating UI
+            const fullName = `${tutor.profiles.first_name} ${tutor.profiles.last_name}`;
+            document.getElementById('display-name').textContent = `Application: ${fullName}`;
+            document.getElementById('display-date').textContent = new Date(tutor.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+            
+            const badge = document.getElementById('display-status-badge');
+            badge.textContent = tutor.status;
+            badge.className = `badge badge-${tutor.status.toLowerCase()}`;
+
+            document.getElementById('d-headline').textContent = tutor.headline || '—';
+            document.getElementById('d-category').textContent = tutor.category || '—';
+            document.getElementById('d-bio').textContent = tutor.bio || '—';
+
+            // Payouts
+            document.getElementById('d-bank-name').textContent = tutor.payout_bank_name || '—';
+            document.getElementById('d-acc-no').textContent = tutor.payout_account_no || '—';
+            document.getElementById('d-ifsc').textContent = tutor.payout_ifsc || '—';
+            document.getElementById('d-branch').textContent = tutor.payout_branch || '—';
+
+            // Video handling
+            if (tutor.video_url) {
+                let embedUrl = tutor.video_url;
+                if (embedUrl.includes('drive.google.com') && embedUrl.includes('/view')) {
+                    embedUrl = embedUrl.replace('/view', '/preview');
+                }
+                document.getElementById('video-wrapper').innerHTML = `
+                    <iframe src="${embedUrl}" frameborder="0" allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>
+                `;
+            } else {
+                document.getElementById('video-wrapper').innerHTML = `<p style="padding:2rem;color:var(--gray-400);">No intro video uploaded</p>`;
+            }
+
+            // Links
+            if (tutor.certs_url) {
+                document.getElementById('d-certs-btn').innerHTML = `
+                    <a href="${tutor.certs_url}" target="_blank" class="btn btn-outline" style="width:100%; justify-content:center; color:var(--primary-600);">
+                        <i data-lucide="external-link"></i> View Documentation Bundle
+                    </a>
+                `;
+            }
+            if (tutor.linkedin && tutor.linkedin !== 'NA') {
+                document.getElementById('d-linkedin-btn').innerHTML = `
+                    <a href="${tutor.linkedin}" target="_blank" class="btn btn-outline" style="width:100%; justify-content:center; color:#0a66c2;">
+                        <i data-lucide="linkedin"></i> View Professional Profile
+                    </a>
+                `;
+            }
+
+            lucide.createIcons();
+        }
+
+        window.openActionModal = function(status) {
+            pendingStatus = status;
+            modalTitle.textContent = status === 'REJECTED' ? 'Reject Application' : 'Request Revision';
+            reasonGroup.style.display = status === 'REJECTED' ? 'block' : 'none';
+            submitBtn.className = status === 'REJECTED' ? 'btn btn-danger' : 'btn btn-warning';
+            submitBtn.textContent = status === 'REJECTED' ? 'Confirm Rejection' : 'Send Request';
+            modal.showModal();
+        }
+
+        document.getElementById('action-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = document.getElementById('action-message').value;
+            const reason = document.getElementById('reject-reason').value;
+            
+            const feedback = pendingStatus === 'REJECTED' 
+                ? `REJECTED: ${reason}. Additional Notes: ${message}`
+                : `REVISION: ${message}`;
+
+            await updateTutorStatus(pendingStatus, feedback);
+            modal.close();
+        });
+
+        window.updateTutorStatus = async function(status, feedback = '') {
+            const confirmMsg = status === 'APPROVED' 
+                ? "Approve this tutor? This will grant them teaching access." 
+                : "Confirm status change?";
+            
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                // 1. Update the tutor profile status
+                const { error: profileError } = await supabase
+                    .from('tutor_profiles')
+                    .update({ 
+                        status: status,
+                        admin_feedback: feedback 
+                    })
+                    .eq('user_id', userId);
+
+                if (profileError) throw profileError;
+
+                // 2. Also update the main profile role to 'tutor' if approved (in case it were 'student')
+                if (status === 'APPROVED') {
+                    await supabase.from('profiles').update({ role: 'tutor' }).eq('id', userId);
+                }
+
+                // 3. Create a notification for the tutor
+                let notifyTitle = '';
+                let notifyMsg = '';
+
+                if (status === 'APPROVED') {
+                    notifyTitle = 'Application Approved! 🎉';
+                    notifyMsg = 'Congratulations! Your tutor application has been approved. You can now start creating courses and hosting sessions.';
+                } else if (status === 'REJECTED') {
+                    notifyTitle = 'Application Status Update';
+                    notifyMsg = `Your tutor application was not approved at this time. ${feedback}`;
+                } else {
+                    notifyTitle = 'Revision Requested';
+                    notifyMsg = `The admin has requested some changes to your profile. Feedback: ${feedback}`;
+                }
+
+                await supabase.from('notifications').insert({
+                    user_id: userId,
+                    title: notifyTitle,
+                    message: notifyMsg,
+                    is_read: false
+                });
+
+                alert(`Status successfully updated to ${status}`);
+                window.location.href = '/admin/index.html';
+            } catch (err) {
+                alert('Update failed: ' + err.message);
+            }
+        }
+
+        initReview();
+    </script>
+</body>
+</html>
